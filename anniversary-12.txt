@@ -1,0 +1,510 @@
+                                ANNIVERSARY v1.2
+                           
+                                 INSTRUCTIONS
+
+    ANN provides a way of maintaining a list of annual appointments and
+anniversaries, with tracking of a person's age.
+
+Run ANN to start it up.
+
+    The software is fairly self explanatory - it follows the standard PSION
+interface fairly closely. When you enter it, it creates a file ANNAPP on A. If
+you enter it with some anniversaries in the file it will display the next one to
+occur after the current system time.  It gives an indication of how far away the
+appointment is (In days if it is under 2 weeks).  Use MODE to access the menu
+
+          Find, Goto, Soonest, Add, Delete, Export
+
+Here are some notes on each option:
+
+Find
+  Will only find the first occurrence of the search string.
+
+Goto
+  Sets the date the program scans from for the next appointment
+
+Soonest
+  Resets the scan date to the system date.
+
+Add
+  Add an anniversary - use a standard date selector (Courtesy of David C. Jones)
+  routine to select the day and month of the anniversary.  If you set the year 
+  to the persons year of birth and answer Y to the following question the prog 
+  will keep track of their age for you. Answer N for things like new years day!
+
+Delete
+
+  Gives you the option of deleting the current entry.
+
+Export
+
+  Creates a file on A which is in diary format and can be merged into your 
+  diary.  The appointment is set with no alarm at midnight on the day of the 
+  anniversary. It's duration is 15 mins.
+
+(*----------------------------------------------------------------------------*)
+
+
+                                     FILES
+
+Files created:
+
+  A:ANNAPP	The annual appointments file (Anniversary)
+  
+  This file is maintained in sorted order by the program so A: is the only 
+  practical drive for it.
+  
+Procedure Filenames:
+
+ANN		Anniversary
+ANEXPORT
+ANSELECT
+ANADDIT
+ANADD
+ANDISP%
+
+DATEIN		David's DATIN$ modified to return the no of days since 1/1/1900 
+		and to allow the user to escape (returns -1)
+MONTH%		Find the month from a no of days from 1/1/1900
+DAY%		Find the day from a no of days from 1/1/1900
+YEAR%		Find the year from a no of days from 1/1/1900
+		The above three are from Collected algorithms from CACM no 199.
+
+TOPLINE		This puts a clock+icon on the top line of the display
+PRINTC		Print a string in the centre of the screen
+BATT		Check for battery low error
+ZERPREF$	Preface a number with zeros - ie ZERPREF$(9,2)="09"
+
+(*----------------------------------------------------------------------------*)
+
+                                   LEGAL STUFF
+
+  I am happy for you to give this software to others, providing you don't
+  charge any money for it and you let me know who you send it to.
+  Please give them this file as well.
+  
+  You use this software entirely at your own risk - I offer no warranty
+  as to its performance or behaviour.
+
+(*--------------------------------Source Code---------------------------------*)
+
+ANN:
+REM Displays the next annual repeated appointment
+REM must use a sorted file.
+
+global cday%, cmonth%, cyear%
+local k%,m%,f$(10),r%,y%,t%,d
+udg 0,26,31,21,31,21,31,0,31
+
+if exist("a:annapp")
+ open "a:annapp",a,desc$,day%,month%,styear%
+else
+ create "a:annapp",a,desc$,day%,month%,year%
+endif
+
+cday%  =day
+cmonth%=month
+cyear% =year
+
+do
+ ANSELECT:(cday%, cmonth%)
+ if EOF
+  FIRST
+  cyear%=cyear%+1
+ ENDIF
+ k%=ANDISP%:
+ if k%=2
+  print chr$(24)
+  at 1,1 :m%=menun(1,"find,goto,soonest,add,delete,export")
+  if m%=1
+   print chr$(24)
+   at 1,1 :print "Find:",
+   trap input f$
+   if err<>206
+    first
+    r%=find(f$)
+    if r%<>0
+     cday%=a.day%
+     cmonth%=a.month%
+    else
+     topline:
+     printc:("* Not Found *",3)
+     get
+    endif
+   endif
+  elseif m%=2
+   print chr$(24)
+   at 1,1
+   print "Goto:";
+   d=datein:(6,1,cday%,cmonth%,cyear%)
+   IF d<>-1
+    cday%=day%:(d)
+    cmonth%=month%:(d)
+    cyear%=year%:(d)
+   ENDIF
+  elseif m%=3
+   cday%  =day
+   cmonth%=month
+   cyear% =year
+  elseif m%=4
+   ANADD:
+  elseif m%=5
+   print chr$(24)
+   AT 1,1 :print "Delete current (Y/N)"
+   y%=get
+   if y%=%y or y%=%Y
+    erase
+   endif
+  elseif m%=6
+   ANEXPORT:
+  endif
+ endif
+until k%=1
+(*----------------------------------------------------------------------------*)
+ANDISP%:
+REM Displays the current record, advancing when EXE is pressed
+
+local dn$(3),mn$(3),k%,y%,gap
+
+if count=0
+ topline:
+ printc:("* No Records *",3)
+ return get
+
+else
+ do
+  topline:
+  dn$=dayname$(DOW(a.day%,a.month%,cyear%))
+  mn$=month$(a.month%)
+  at 1,4 :print dn$,a.day%,mn$
+  gap=DAYS(a.day%,a.month%,cyear%) - DAYS(DAY,MONTH,YEAR)
+  if gap>0
+   if gap>366
+    at 12,4 :print cyear%
+   elseif gap > 14
+    gap=int(gap/7)
+    at 12,4 :PRINT "(";gap;"weeks)"
+   ELSE
+    at 12,4 :PRINT "(";gap,"days)"
+   endif
+  ENDIF
+  if a.styear%<>0
+   y%=cyear%-a.styear%
+   at 7,3 :print y%,"Years"
+  endif
+  k%=view(2,a.desc$)
+  if k%=13
+   next
+   if eof
+    cyear%=cyear%+1
+   first
+   endif
+  endif
+ until k%<>13
+ return k%
+endif
+(*----------------------------------------------------------------------------*)
+ANADD:
+REM Inserts a new anniversary in sorted order into file A (A:ANNAPP)
+
+LOCAL TD%,TM%,TSY%,TD$(64),g%,d
+
+cls :topline:
+PRINT "Description:",
+TRAP INPUT TD$
+IF ERR=206
+  RETURN
+ENDIF
+AT 1,3 :PRINT "Date:"
+d=datein:(6,3,cday%,cmonth%,cyear%)
+IF d<>-1
+  cday%=day%:(d)
+  cmonth%=month%:(d)
+  cyear%=year%:(d)
+ENDIF
+td%=cday%
+tm%=cmonth%
+AT 1,4 :PRINT "Count from",cyear%;chr$(63),"Y/N"
+g%=GET
+IF g%=%y OR g%=%Y
+  TSY%=cyear%
+ELSE
+  TSY%=0
+ENDIF
+
+AT 1,4 :PRINT "Adding...           "
+LAST
+IF (TD%<a.day% AND TM%=a.month%) OR (TM%<a.month%)
+  a.desc$="%%%"+a.desc$
+  UPDATE
+  ANADDIT:(TD$,TD%,TM%,TSY%)
+ELSE
+  ANADDIT:(TD$,TD%,TM%,TSY%)
+  RETURN
+ENDIF
+
+DO
+ ANSELECT:(td%,tm%)
+ UPDATE
+UNTIL  LEFT$(a.desc$,3)="%%%"
+
+a.desc$=RIGHT$(a.desc$,LEN(a.desc$)-3)
+UPDATE
+cyear%=YEAR
+(*----------------------------------------------------------------------------*)
+ANADDIT:(TD$,TD%,TM%,TSY%)
+a.desc$=TD$
+a.day%=td%
+a.month%=tm%
+a.styear%=tsy%
+APPEND
+(*----------------------------------------------------------------------------*)
+ANEXPORT:
+local fl$(8),fname$(10),y%
+do
+ topline:
+ print "Filename:",
+ trap input fl$
+ if err=206
+  return
+ endif
+ fname$="a:"+fl$
+until not exist(fname$)
+do
+ at 1,3: print "Year (yyyy):     ",
+ at 14,3 :input y%
+until y%>=1900 and y%<=2055
+IF y%<>YEAR
+ FIRST
+ELSE
+ ANSELECT:(DAY,MONTH)
+ENDIF
+IF NOT EOF
+ CREATE fname$,b,time$,desc$
+ENDIF
+USE a
+WHILE NOT EOF
+ use b
+ b.time$=gen$(y%,4)+ZERPREF$:(a.month%,2)+ZERPREF$:(a.day%,2)+"00000100"
+ b.desc$=a.desc$
+ append
+ use a
+ next
+endwh
+(*----------------------------------------------------------------------------*)
+ANSELECT:(dy%,mn%)
+REM Makes the next record after dy%/mn% the
+REM current record.
+
+first
+WHILE NOT EOF
+ if a.month%<mn%
+  next
+ elseif (a.month%=mn%) AND (a.day%<dy%)
+  next
+ else
+  return
+ endif
+ENDWH
+(*----------------------------------------------------------------------------*)
+DATEIN:(C%,L%,dd%,mm%,yyyy%)
+REM Modified from code by David C. Jones
+REM Returns DAYS() of selected date or -1 if user escapes
+REM using ON/CLEAR
+
+LOCAL E%,G%,DY%,DT%,M%,Y%,CUR%,D$(8),Z$(15),Z(12)
+Z(1)=31
+Z(3)=31
+Z(4)=30
+Z(5)=31
+Z(6)=30
+Z(7)=31
+Z(8)=31
+Z(9)=30
+Z(10)=31
+Z(11)=30
+Z(12)=31
+DT%=dd%
+M%=mm%
+Y%=yyyy%
+DY%=DOW(DT%,M%,Y%)
+CUR%=1
+CURSOR ON
+
+ST::
+
+Z$=DAYNAME$(DY%)+GEN$(FLT(DT%),-3)+" "+MONTH$(M%)+GEN$(FLT(Y%),-5)
+IF (FLT(Y%))/4=INT(FLT(Y%)/4) AND Y%<>1900 AND Y%<>2100
+  Z(2)=29
+ELSE
+  Z(2)=28
+ENDIF
+AT C%,L%
+PRINT Z$
+IF CUR%=1
+  IF DT%<10
+    AT C%+5,L%
+  ELSE
+    AT C%+4,L%
+  ENDIF
+ELSEIF CUR%=2
+  AT C%+7,L%
+ELSEIF CUR%=3
+  AT C%+11,L%
+ENDIF
+
+CONT::
+
+G%=GET
+ONERR ERROR::
+IF g%=1
+  ONERR OFF
+  CURSOR OFF
+  RETURN -1
+ELSEIF G%=5
+  CUR%=CUR%-1
+ELSEIF G%=6
+  CUR%=CUR%+1
+ELSEIF G%=13
+  GOTO END::
+ELSEIF G%=3 AND CUR%=1
+  DT%=DT%+1
+ELSEIF G%=4 AND CUR%=1
+  DT%=DT%-1
+ELSEIF G%=3 AND CUR%=2
+  M%=M%+1
+ELSEIF G%=4 AND CUR%=2
+  M%=M%-1
+ELSEIF G%=3 AND CUR%=3
+  Y%=Y%+1
+ELSEIF G%=4 AND CUR%=3
+  Y%=Y%-1
+ELSE GOTO CONT::
+ENDIF
+IF CUR%=4
+  CUR%=1
+ ELSEIF CUR%=0
+  CUR%=3
+ENDIF
+REST::
+DY%=DOW(DT%,M%,Y%)
+GOTO ST::
+END::
+ONERR OFF
+CURSOR OFF
+RETURN DAYS(dt%,m%,y%)
+
+ERROR::
+onerr off
+E%=ERR
+
+IF E%=194
+
+  batt:
+  GOTO END::
+
+ELSEIF E%=247
+
+  IF M%=13
+    M%=1
+  ELSEIF M%=0
+    M%=12
+  ENDIF
+
+  IF DT%=29 AND M%=2 AND CUR%=3
+    DT%=28
+  ENDIF
+
+  IF DT%=Z(M%)+1 AND CUR%=1
+    DT%=1
+  ELSEIF DT%=0
+    DT%=Z(M%)
+  ENDIF
+
+  IF Y%=1899
+    Y%=2155
+  ELSEIF Y%=2156
+    Y%=1900
+  ENDIF
+
+  IF DT%>Z(M%) AND CUR%=2
+    DT%=Z(M%)
+  ENDIF
+
+  ONERR ERROR::
+  GOTO REST::
+
+ENDIF
+(*----------------------------------------------------------------------------*)
+DAY%:(ds)
+LOCAL j,d,m,y
+j = ds+693902
+y = INTF((4*j-1)/146097)
+j = 4*j-1-146097*y
+d = INTF(j/4)
+j = INTF((4*d+3)/1461)
+d = 4*d+3-1461*j
+d = INTF((d+4)/4)
+m = INTF((5*d-3)/153)
+d = 5*d-3-153*m
+return INT((d+5)/5)
+(*----------------------------------------------------------------------------*)
+MONTH%:(ds)
+LOCAL j,d,m,y
+j = ds+693902
+y = INTF((4*j-1)/146097)
+j = 4*j-1-146097*y
+d = INTF(j/4)
+j = INTF((4*d+3)/1461)
+d = 4*d+3-1461*j
+d = INTF((d+4)/4)
+m = INTF((5*d-3)/153)
+IF m<10
+  m = m+3
+ELSE
+  m = m-9
+ENDIF
+
+return INT(m)
+(*----------------------------------------------------------------------------*)
+YEAR%:(ds)
+LOCAL j,d,m,y
+j = ds+693902
+y = INTF((4*j-1)/146097)
+j = 4*j-1-146097*y
+d = INTF(j/4)
+j = INTF((4*d+3)/1461)
+d = 4*d+3-1461*j
+d = INTF((d+4)/4)
+m = INTF((5*d-3)/153)
+y = 100*y+j
+IF m>9
+  y = y+1
+ENDIF
+
+return INT(y)
+(*----------------------------------------------------------------------------*)
+TOPLINE:
+udg 2,0,0,0,0,0,0,0,31
+cls
+print chr$(0);rept$(chr$(2),14)
+clock(1)
+(*----------------------------------------------------------------------------*)
+PRINTC:(a$,n%)
+at int((20-len(a$))/2)+1,n% :print a$;
+(*----------------------------------------------------------------------------*)
+batt:
+ cls
+ print chr$(16)
+ printc:(err$(194),1) 
+pause -40
+ off 
+(*----------------------------------------------------------------------------*)
+ZERPREF$:(n%,l%)
+local t$(255)
+t$=num$(n%,l%)
+if len(t$)<l%
+ t$=rept$("0",l%-len(t$))+t$
+endif
+return t$
+(*-------------------------------END OF FILE----------------------------------*)
