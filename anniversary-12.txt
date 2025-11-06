@@ -99,7 +99,7 @@ udg 0,26,31,21,31,21,31,0,31
 if exist("a:annapp")
  open "a:annapp",a,desc$,day%,month%,styear%
 else
- create "a:annapp",a,desc$,day%,month%,year%
+ create "a:annapp",a,desc$,day%,month%,styear%
 endif
 
 cday%  =day
