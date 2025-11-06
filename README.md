@@ -1,2 +1,3 @@
 # organiser-ii
-Software for the Psion Organiser II LZ &amp; LZ64
+
+In the 1990's I wrote and distributed software for the Psion Organiser II computer. Here are two programs I have recently rediscovered the source for.
