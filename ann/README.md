@@ -1,6 +1,6 @@
-# ANNIVERSARY v1.2
+# Anniversary v1.2
                            
-## INSTRUCTIONS
+## Instructions
 
 ANN provides a way of maintaining a list of annual appointments and
 anniversaries, with tracking of a person's age.
@@ -17,30 +17,36 @@ appointment is (In days if it is under 2 weeks).  Use MODE to access the menu
 
 Here are some notes on each option:
 
-Find
-: Will only find the first occurrence of the search string.
+### Find
 
-Goto
-: Sets the date the program scans from for the next appointment
+Will only find the first occurrence of the search string.
 
-Soonest
-: Resets the scan date to the system date.
+### Goto
 
-Add
-: Add an anniversary - use a standard date selector (Courtesy of David C. Jones)
-  routine to select the day and month of the anniversary.  If you set the year 
-  to the persons year of birth and answer Y to the following question the prog 
-  will keep track of their age for you. Answer N for things like new years day!
+Sets the date the program scans from for the next appointment
 
-Delete
-: Gives you the option of deleting the current entry.
+### Soonest
 
-Export
-: Creates a file on A which is in diary format and can be merged into your 
-  diary.  The appointment is set with no alarm at midnight on the day of the 
-  anniversary. It's duration is 15 mins.
+Resets the scan date to the system date.
 
-## FILES
+### Add
+
+Add an anniversary - use a standard date selector (Courtesy of David C. Jones)
+routine to select the day and month of the anniversary.  If you set the year 
+to the persons year of birth and answer Y to the following question the prog 
+will keep track of their age for you. Answer N for things like new years day!
+
+### Delete
+
+Gives you the option of deleting the current entry.
+
+### Export
+
+Creates a file on A which is in diary format and can be merged into your 
+diary.  The appointment is set with no alarm at midnight on the day of the 
+anniversary. It's duration is 15 mins.
+
+## Files
 
 Files created:
 
