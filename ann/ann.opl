@@ -1,0 +1,72 @@
+ANN:
+REM Displays the next annual repeated appointment
+REM must use a sorted file.
+
+global cday%, cmonth%, cyear%
+local k%,m%,f$(10),r%,y%,t%,d
+udg 0,26,31,21,31,21,31,0,31
+
+if exist("a:annapp")
+ open "a:annapp",a,desc$,day%,month%,styear%
+else
+ create "a:annapp",a,desc$,day%,month%,styear%
+endif
+
+cday%  =day
+cmonth%=month
+cyear% =year
+
+do
+ ANSELECT:(cday%, cmonth%)
+ if EOF
+  FIRST
+  cyear%=cyear%+1
+ ENDIF
+ k%=ANDISP%:
+ if k%=2
+  print chr$(24)
+  at 1,1 :m%=menun(1,"find,goto,soonest,add,delete,export")
+  if m%=1
+   print chr$(24)
+   at 1,1 :print "Find:",
+   trap input f$
+   if err<>206
+    first
+    r%=find(f$)
+    if r%<>0
+     cday%=a.day%
+     cmonth%=a.month%
+    else
+     topline:
+     printc:("* Not Found *",3)
+     get
+    endif
+   endif
+  elseif m%=2
+   print chr$(24)
+   at 1,1
+   print "Goto:";
+   d=datein:(6,1,cday%,cmonth%,cyear%)
+   IF d<>-1
+    cday%=day%:(d)
+    cmonth%=month%:(d)
+    cyear%=year%:(d)
+   ENDIF
+  elseif m%=3
+   cday%  =day
+   cmonth%=month
+   cyear% =year
+  elseif m%=4
+   ANADD:
+  elseif m%=5
+   print chr$(24)
+   AT 1,1 :print "Delete current (Y/N)"
+   y%=get
+   if y%=%y or y%=%Y
+    erase
+   endif
+  elseif m%=6
+   ANEXPORT:
+  endif
+ endif
+until k%=1
