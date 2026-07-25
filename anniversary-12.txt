@@ -79,12 +79,7 @@ ZERPREF$	Preface a number with zeros - ie ZERPREF$(9,2)="09"
 
                                    LEGAL STUFF
 
-  I am happy for you to give this software to others, providing you don't
-  charge any money for it and you let me know who you send it to.
-  Please give them this file as well.
-  
-  You use this software entirely at your own risk - I offer no warranty
-  as to its performance or behaviour.
+MIT Licence: https://github.com/jhmcaleely/organiser-ii/blob/main/LICENSE
 
 (*--------------------------------Source Code---------------------------------*)
 
